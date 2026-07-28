@@ -30,33 +30,64 @@ def generate_transactions(
         end_date = pd.Timestamp.today()
         balance = random_number_of_transactions * 5001
 
-        for _ in range(random_number_of_transactions):
-            amount = generate_amount()
-            transaction_type, transaction_channel = generate_transaction(
-                TRANSACTION_TYPES,
-                TRANSACTION_CHANNELS
-            ),
+        # for _ in range(random_number_of_transactions):
+        #     amount = generate_amount()
+        #     transaction_type, transaction_channel = generate_transaction(
+        #         TRANSACTION_TYPES,
+        #         TRANSACTION_CHANNELS
+        #     ),
 
-            merchant_name = random.choice(MERCHANTS[transaction_type])
+        #     merchant_name = random.choice(MERCHANTS[transaction_type])
 
-            reference = generate_reference(
-                TRANSACTION_TYPES, 
-                transaction_type,
-                merchant_name
-            )
+        #     reference = generate_reference(
+        #         TRANSACTION_TYPES, 
+        #         transaction_type,
+        #         merchant_name
+        #     )
 
-            is_fraud = is_fraud(
-                amount,
-                transaction_channel,
-                transaction_type,
-                merchant_name,
-            )
+        #     is_fraud = is_fraud(
+        #         amount,
+        #         transaction_channel,
+        #         transaction_type,
+        #         merchant_name,
+        #     )
 
-            write_row()
+        #     write_row()
     return pd.DataFrame(new_data)
 
 
 def generate_transaction(
+        number_of_transactions: int,
+        TRANSACTION_TYPES,
+        TRANSACTION_CHANNELS,
+        MERCHANTS,
+    ) -> None:
+    for _ in range(number_of_transactions):
+        amount = generate_amount()
+        transaction_type, transaction_channel = generate_transaction_info(
+            TRANSACTION_TYPES,
+            TRANSACTION_CHANNELS
+        ),
+
+        merchant_name = random.choice(MERCHANTS[transaction_type])
+
+        reference = generate_reference(
+            TRANSACTION_TYPES, 
+            transaction_type,
+            merchant_name
+        )
+
+        is_fraud = is_fraud(
+            amount,
+            transaction_channel,
+            transaction_type,
+            merchant_name,
+        )
+
+        write_row()
+
+
+def generate_transaction_info(
     transaction_types,
     transaction_channels,
 ):
@@ -113,7 +144,10 @@ def is_fraud(
 
 
 def write_row(
-    df: dict
+    df: dict,
+    row,
+    transaction_id: itertools.count,
+    fake,
 ):
     df["transaction_id"].append(next(transaction_id))
     df["account_id"].append(row.account_id)
