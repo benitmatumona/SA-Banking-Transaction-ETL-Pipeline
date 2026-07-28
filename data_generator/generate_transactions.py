@@ -150,8 +150,14 @@ def is_fraud(
 def write_row(
     df: dict,
     row,
-    transaction_id: itertools.count,
     fake,
+    transaction_id: itertools.count,
+    transaction_type,
+    transaction_channel,
+    merchant_name,
+    reference,
+    amount,
+    end_date,
 ):
     df["transaction_id"].append(next(transaction_id))
     df["account_id"].append(row.account_id)
