@@ -30,7 +30,12 @@ def generate_transactions(
         end_date = pd.Timestamp.today()
         balance = random_number_of_transactions * 5001
 
-        # for _ in range(random_number_of_transactions):
+        for _ in range(random_number_of_transactions):
+            generate_transaction(
+                TRANSACTION_TYPES, 
+                TRANSACTION_CHANNELS, 
+                MERCHANTS
+            )
         #     amount = generate_amount()
         #     transaction_type, transaction_channel = generate_transaction(
         #         TRANSACTION_TYPES,
@@ -57,42 +62,41 @@ def generate_transactions(
 
 
 def generate_transaction(
-        number_of_transactions: int,
-        TRANSACTION_TYPES,
-        TRANSACTION_CHANNELS,
-        MERCHANTS,
+        transaction_types,
+        transaction_channels,
+        merchants,
     ) -> None:
-    for _ in range(number_of_transactions):
-        amount = generate_amount()
-        transaction_type, transaction_channel = generate_transaction_info(
-            TRANSACTION_TYPES,
-            TRANSACTION_CHANNELS
-        ),
+    
+    amount = generate_amount()
+    transaction_type, transaction_channel = generate_transaction_info(
+        transaction_types,
+        transaction_channels
+    ),
 
-        merchant_name = random.choice(MERCHANTS[transaction_type])
+    merchant_name = random.choice(merchants[transaction_type])
 
-        reference = generate_reference(
-            TRANSACTION_TYPES, 
-            transaction_type,
-            merchant_name
-        )
+    reference = generate_reference(
+        transaction_types, 
+        transaction_type,
+        merchant_name
+    )
 
-        is_fraud = is_fraud(
-            amount,
-            transaction_channel,
-            transaction_type,
-            merchant_name,
-        )
+    is_fraud = is_fraud(
+        amount,
+        transaction_channel,
+        transaction_type,
+        merchant_name,
+    )
 
-        write_row()
+    write_row()
 
 
 def generate_transaction_info(
     transaction_types,
     transaction_channels,
 ):
-    transaction_types = random.choice(tuple(TRANSACTION_TYPES.keys()))
-    transaction_channels = random.choice(TRANSACTION_CHANNELS[transaction_type])
+    transaction_types = random.choice(tuple(transaction_types.keys()))
+    transaction_channels = random.choice(transaction_channels[transaction_types])
     return transaction_types, transaction_channels
 
 
