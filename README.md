@@ -18,13 +18,15 @@ A production-style Data Engineering project that simulates a South African banki
 
 # 🛠️ Tech Stack
 
-- Python
+- Python 3.10+
 - Pandas
 - Faker
 - PostgreSQL
 - SQL
 - Apache Airflow
 - Docker
+- uv (dependency management)
+- pytest, mypy, ruff
 - Git
 - GitHub
 
@@ -33,24 +35,18 @@ A production-style Data Engineering project that simulates a South African banki
 # 📂 Project Structure
 
 ```text
-SA-FINANCE-LAKEHOUSE/
+SA-Banking-Transaction-ETL-Pipeline/
 │
 ├── airflow/
 │   └── bank_etl_dag.py
 │
-├── analytics/
-│   ├── customer_segmentation.sql
-│   ├── fraud_detection.sql
-│   ├── dormant_accounts.sql
-│   ├── province_revenue.sql
-│   ├── top_spenders.sql
-│   └── monthly_revenue.sql
-│
 ├── data/
-│   ├── raw/
-│   └── processed/
+│   └── raw/
+│       ├── customers.csv
+│       ├── accounts.csv
+│       └── transactions.csv
 │
-├── data_generation/
+├── data_generator/
 │   ├── generate_customers.py
 │   ├── generate_accounts.py
 │   └── generate_transactions.py
@@ -62,20 +58,31 @@ SA-FINANCE-LAKEHOUSE/
 │
 ├── docs/
 │   ├── architecture.png
-│   ├── erd.png
-│   └── screenshots/
+│   └── erd.png
 │
-├── etl/
-│   ├── load_to_postgres.py
-│   └── validate_data.py
+├── sql/
+│   └── analytics/
+│       ├── customer_segmentation.sql
+│       ├── fraud_detection.sql
+│       ├── dormant_accounts.sql
+│       ├── province_revenue.sql
+│       ├── top_spenders.sql
+│       └── monthly_revenue.sql
+│
+├── src/
+│   ├── config.py
+│   └── etl/
+│       ├── load.py
+│       └── validate.py
 │
 ├── tests/
 │   ├── test_load_to_postgres.py
 │   └── test_validate_data.py
 │
-├── README.md
-├── requirements.txt
-└── docker-compose.yml
+├── docker-compose.yml
+├── pyproject.toml
+├── uv.lock
+└── README.md
 ```
 
 ---
@@ -99,7 +106,7 @@ SA-FINANCE-LAKEHOUSE/
 |----------|-------------|
 | account_id | Primary key |
 | customer_id | Foreign key to Customers |
-| account_type | Cheque, Savings or Credit |
+| account_type | Cheque, Savings, Credit or Business |
 | open_date | Account opening date |
 
 ---
@@ -112,52 +119,105 @@ SA-FINANCE-LAKEHOUSE/
 | account_id | Foreign key to Accounts |
 | transaction_date | Transaction date |
 | transaction_type | Deposit, Withdrawal, Card Purchase, EFT, Salary |
+| transaction_channel | ATM, Branch, POS, Online, Online Banking or Mobile App |
 | merchant_name | Merchant involved |
 | amount | Transaction amount |
 | reference | Transaction reference |
 | balance_after_transaction | Running account balance |
 | is_fraud | Fraud indicator |
 
+The schema is created via `database/create_database.sql` and `database/create_tables.sql`, with supporting indexes defined in `database/indexes.sql` (province, customer_id, account_id, transaction_date, is_fraud).
+
 ---
 
 # 📈 Data Generation
 
-The project creates realistic banking data including:
+The `data_generator/` scripts create realistic banking data including:
 
-- Customers
-- Accounts
-- Transactions
+- **Customers** — 1,000 customers with South African names, provinces and join dates.
+- **Accounts** — Each customer holds 1–3 accounts (Cheque, Savings, Credit or Business).
+- **Transactions** — Deposits, withdrawals, card purchases, EFTs and salary payments per account.
 
-Business rules include:
+Business rules enforced during generation and validation:
 
 - Accounts cannot be opened before a customer joins the bank.
 - Transactions cannot occur before an account is opened.
-- Each customer can have between 1 and 3 account types.
+- Each customer can have between 1 and 3 accounts.
 - Each account contains multiple transactions.
-- Fraudulent transactions are randomly generated.
-- Transaction references are generated according to transaction type.
+- Fraudulent transactions are randomly flagged via `is_fraud`.
+- Transaction references and channels are generated according to transaction type.
+
+Run the generators in order to (re)build the raw CSVs in `data/raw/`:
+
+```bash
+uv run python data_generator/generate_customers.py
+uv run python data_generator/generate_accounts.py
+uv run python data_generator/generate_transactions.py
+```
 
 ---
 
 # 🔄 ETL Pipeline
 
-The ETL pipeline performs the following steps:
+Implemented in `src/etl/`:
 
-1. Read generated CSV files.
-2. Validate the data.
+- **`validate.py`** — Validates the raw data before loading: duplicate checks, missing-value checks, allowed-value checks (province, account type, transaction type/channel), foreign-key integrity between customers → accounts → transactions, transaction amount bounds, and transaction-date consistency (a transaction can't predate its account's open date or occur in the future).
+- **`load.py`** — Reads the validated CSVs with pandas, connects to PostgreSQL via `psycopg2`, and bulk-loads customers, accounts and transactions using `execute_values` for efficient batched inserts.
+
+Pipeline steps:
+
+1. Read the generated CSV files from `data/raw/`.
+2. Validate the data (`validate()`).
 3. Connect to PostgreSQL.
-4. Load Customers.
-5. Load Accounts.
-6. Load Transactions.
+4. Load customers.
+5. Load accounts.
+6. Load transactions.
 7. Commit the transaction.
-8. Handle errors.
-9. Close database connection.
+8. Handle and log database errors.
+9. Close the database connection.
+
+Run it directly with:
+
+```bash
+uv run python -m src.etl.validate
+uv run python -m src.etl.load
+```
+
+---
+
+# 🔁 Orchestration (Apache Airflow)
+
+`airflow/bank_etl_dag.py` defines a `bank_etl_dag` DAG that chains the pipeline into two tasks:
+
+1. `validate_data` — reads the raw CSVs and runs the validation checks.
+2. `load_data` — reads the raw CSVs and loads them into PostgreSQL.
+
+The DAG is scheduled to run `@daily` and is tagged `banking`, `etl`.
+
+---
+
+# 🐳 Running PostgreSQL with Docker
+
+`docker-compose.yml` spins up a PostgreSQL 16 container (`sa_banking_postgres`) and automatically applies `database/create_tables.sql` and `database/indexes.sql` on first start:
+
+```bash
+docker compose up -d
+```
+
+Default connection settings (see `src/config.py`):
+
+| Setting | Value |
+|---------|-------|
+| Host | localhost |
+| Port | 5432 |
+| Database | south_africa_bank |
+| User | postgres |
 
 ---
 
 # 📊 Analytics
 
-The project answers business questions such as:
+`sql/analytics/` holds the queries that will answer business questions such as:
 
 - Customer segmentation by province
 - Monthly revenue
@@ -165,6 +225,23 @@ The project answers business questions such as:
 - Dormant accounts
 - Top spending customers
 - Provincial revenue analysis
+
+These files are scaffolded and are the next piece of work to be written (see **Current Progress** below).
+
+---
+
+# ✅ Tests
+
+Unit tests live in `tests/` and cover the ETL layer:
+
+- `test_load_to_postgres.py` — connection setup, bulk insert calls, and load orchestration (using mocked `psycopg2`).
+- `test_validate_data.py` — each validation rule (duplicates, missing values, allowed types, transaction amounts/dates, foreign keys).
+
+Run the test suite with:
+
+```bash
+uv run pytest
+```
 
 ---
 
@@ -177,6 +254,7 @@ The project answers business questions such as:
 - Functions
 - Error handling
 - Modular programming
+- Type hints
 
 ## Pandas
 
@@ -218,6 +296,7 @@ The project answers business questions such as:
 - Git
 - GitHub
 - Apache Airflow
+- uv for dependency and environment management
 
 ---
 
@@ -240,23 +319,21 @@ Topics covered include:
 
 ## ✅ Completed
 
-- Customer data generator
-- Account data generator
-- Transaction data generator
-- PostgreSQL database creation
-- Database schema
-- Database indexes
+- Customer, account and transaction data generators
+- PostgreSQL database creation, schema and indexes
+- Dockerized PostgreSQL setup
+- ETL data validation module
+- ETL load module (bulk insert into PostgreSQL)
+- Airflow DAG orchestrating validation and load
+- Automated tests for the ETL layer
+- Project migrated to `uv` for dependency management
 
 ## 🚧 In Progress
 
-- ETL pipeline
-- Data validation
+- SQL analytics queries (files scaffolded in `sql/analytics/`, not yet written)
 
 ## ⏳ Planned
 
-- Airflow DAG
-- SQL analytics
-- Automated tests
 - Documentation screenshots
 - Architecture diagram
 - Entity Relationship Diagram (ERD)
@@ -266,9 +343,8 @@ Topics covered include:
 # ▶️ Future Improvements
 
 - Incremental loading
-- Environment variables (.env)
-- Dockerized PostgreSQL
-- Logging
+- Environment variables (.env) instead of hardcoded config values
+- Logging improvements and structured logs
 - Retry mechanisms
 - CI/CD pipeline
 - Data quality reporting
