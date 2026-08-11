@@ -226,4 +226,114 @@ uv run pytest tests/ -v
 
 - File handling
 - Data structures
--
+- Functions
+- Error handling
+- Modular programming
+
+## Pandas
+
+- Reading CSV files
+- Data transformation
+- Data validation
+- DataFrame manipulation
+
+## SQL
+
+- Database creation
+- Table creation
+- Primary Keys
+- Foreign Keys
+- NOT NULL constraints
+- Indexes
+- Joins
+- Aggregations
+- Window functions
+
+## PostgreSQL
+
+- Database design
+- Constraints
+- Indexing
+- Query optimization
+
+## Data Engineering
+
+- ETL pipelines
+- Data validation
+- Data modeling
+- Data loading
+- Workflow automation
+
+## DevOps
+
+- Docker / Docker Compose
+- Git
+- GitHub
+- Apache Airflow
+- Automated testing (pytest)
+
+---
+
+# 🎯 Learning Objectives
+
+This project demonstrates the skills expected from a Junior Data Engineer while building the foundation required for Machine Learning Engineering.
+
+Topics covered include:
+
+- Relational database design
+- ETL development
+- Data quality validation
+- Workflow orchestration
+- SQL analytics
+- Production project organization
+
+---
+
+# 🚧 Current Progress
+
+## ✅ Completed
+
+- Customer data generator
+- Account data generator
+- Transaction data generator
+- PostgreSQL database creation
+- Database schema
+- Database indexes
+- ETL pipeline (`validate.py`, `load.py`)
+- Data validation
+- Airflow DAG
+- SQL analytics queries
+- Automated tests
+- Dockerized PostgreSQL
+
+## ⏳ Planned
+
+- Documentation screenshots
+- Architecture diagram
+- Entity Relationship Diagram (ERD)
+- Incremental loading
+- Environment variables (`.env`)
+- Logging
+- Retry mechanisms
+- CI/CD pipeline
+
+---
+
+# ▶️ Future Improvements
+
+- Incremental loading
+- Environment variables (`.env`) for database credentials
+- Logging
+- Retry mechanisms
+- CI/CD pipeline
+- Data quality reporting
+- Cloud deployment (AWS/GCP/Azure)
+
+---
+
+# 👨‍💻 Author
+
+**Benit Polvie Matumona**
+
+Aspiring Machine Learning Engineer building production-style Data Engineering projects as a foundation for advanced ML systems.
+README_EOF
