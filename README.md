@@ -1,6 +1,7 @@
+cat > README.md << 'README_EOF'
 # 🇿🇦 SA Banking Transaction ETL Pipeline
 
-A production-style Data Engineering project that simulates a South African banking system. The project generates realistic banking data, loads it into PostgreSQL through an ETL pipeline, orchestrates workflows with Apache Airflow, and performs analytical SQL queries. It is designed to demonstrate the complete data engineering lifecycle while serving as a stepping stone toward Machine Learning Engineering.
+A production-style Data Engineering project that simulates a South African banking system. The project generates realistic banking data, validates it, loads it into PostgreSQL through an ETL pipeline, orchestrates workflows with Apache Airflow, and performs analytical SQL queries. It is designed to demonstrate the complete data engineering lifecycle while serving as a stepping stone toward Machine Learning Engineering.
 
 ---
 
@@ -18,17 +19,17 @@ A production-style Data Engineering project that simulates a South African banki
 
 # 🛠️ Tech Stack
 
-- Python 3.10+
+- Python (managed with [uv](https://docs.astral.sh/uv/))
 - Pandas
 - Faker
 - PostgreSQL
+- psycopg2
 - SQL
 - Apache Airflow
-- Docker
-- uv (dependency management)
-- pytest, mypy, ruff
-- Git
-- GitHub
+- Docker / Docker Compose
+- pytest
+- ruff + mypy
+- Git / GitHub
 
 ---
 
@@ -63,11 +64,11 @@ SA-Banking-Transaction-ETL-Pipeline/
 ├── sql/
 │   └── analytics/
 │       ├── customer_segmentation.sql
-│       ├── fraud_detection.sql
 │       ├── dormant_accounts.sql
+│       ├── fraud_detection.sql
+│       ├── monthly_revenue.sql
 │       ├── province_revenue.sql
-│       ├── top_spenders.sql
-│       └── monthly_revenue.sql
+│       └── top_spenders.sql
 │
 ├── src/
 │   ├── config.py
@@ -82,6 +83,8 @@ SA-Banking-Transaction-ETL-Pipeline/
 ├── docker-compose.yml
 ├── pyproject.toml
 ├── uv.lock
+├── .python-version
+├── .gitignore
 └── README.md
 ```
 
@@ -119,128 +122,100 @@ SA-Banking-Transaction-ETL-Pipeline/
 | account_id | Foreign key to Accounts |
 | transaction_date | Transaction date |
 | transaction_type | Deposit, Withdrawal, Card Purchase, EFT, Salary |
-| transaction_channel | ATM, Branch, POS, Online, Online Banking or Mobile App |
+| transaction_channel | ATM, Branch, POS, Online, Mobile App, etc. |
 | merchant_name | Merchant involved |
 | amount | Transaction amount |
 | reference | Transaction reference |
 | balance_after_transaction | Running account balance |
 | is_fraud | Fraud indicator |
 
-The schema is created via `database/create_database.sql` and `database/create_tables.sql`, with supporting indexes defined in `database/indexes.sql` (province, customer_id, account_id, transaction_date, is_fraud).
-
 ---
 
 # 📈 Data Generation
 
-The `data_generator/` scripts create realistic banking data including:
+The project creates realistic banking data including:
 
-- **Customers** — 1,000 customers with South African names, provinces and join dates.
-- **Accounts** — Each customer holds 1–3 accounts (Cheque, Savings, Credit or Business).
-- **Transactions** — Deposits, withdrawals, card purchases, EFTs and salary payments per account.
+- Customers
+- Accounts
+- Transactions
 
-Business rules enforced during generation and validation:
+Business rules include:
 
 - Accounts cannot be opened before a customer joins the bank.
 - Transactions cannot occur before an account is opened.
-- Each customer can have between 1 and 3 accounts.
+- Each customer can have between 1 and 3 account types.
 - Each account contains multiple transactions.
-- Fraudulent transactions are randomly flagged via `is_fraud`.
-- Transaction references and channels are generated according to transaction type.
+- Fraudulent transactions are randomly generated.
+- Transaction references are generated according to transaction type.
 
-Run the generators in order to (re)build the raw CSVs in `data/raw/`:
+Run the generators in order (each one reads the previous CSV):
 
 ```bash
-uv run python data_generator/generate_customers.py
-uv run python data_generator/generate_accounts.py
-uv run python data_generator/generate_transactions.py
+python data_generator/generate_customers.py
+python data_generator/generate_accounts.py
+python data_generator/generate_transactions.py
 ```
 
 ---
 
 # 🔄 ETL Pipeline
 
-Implemented in `src/etl/`:
+The ETL pipeline performs the following steps:
 
-- **`validate.py`** — Validates the raw data before loading: duplicate checks, missing-value checks, allowed-value checks (province, account type, transaction type/channel), foreign-key integrity between customers → accounts → transactions, transaction amount bounds, and transaction-date consistency (a transaction can't predate its account's open date or occur in the future).
-- **`load.py`** — Reads the validated CSVs with pandas, connects to PostgreSQL via `psycopg2`, and bulk-loads customers, accounts and transactions using `execute_values` for efficient batched inserts.
-
-Pipeline steps:
-
-1. Read the generated CSV files from `data/raw/`.
-2. Validate the data (`validate()`).
+1. Read generated CSV files (`src/etl/load.py::read_data`).
+2. Validate the data (`src/etl/validate.py::validate`).
 3. Connect to PostgreSQL.
-4. Load customers.
-5. Load accounts.
-6. Load transactions.
+4. Load Customers.
+5. Load Accounts.
+6. Load Transactions.
 7. Commit the transaction.
-8. Handle and log database errors.
+8. Handle errors.
 9. Close the database connection.
 
-Run it directly with:
+Run validation and loading directly:
 
 ```bash
-uv run python -m src.etl.validate
-uv run python -m src.etl.load
+python -m src.etl.validate
+python -m src.etl.load
 ```
 
----
-
-# 🔁 Orchestration (Apache Airflow)
-
-`airflow/bank_etl_dag.py` defines a `bank_etl_dag` DAG that chains the pipeline into two tasks:
-
-1. `validate_data` — reads the raw CSVs and runs the validation checks.
-2. `load_data` — reads the raw CSVs and loads them into PostgreSQL.
-
-The DAG is scheduled to run `@daily` and is tagged `banking`, `etl`.
+Or let Airflow orchestrate both steps via `airflow/bank_etl_dag.py`, which validates the data before loading it into PostgreSQL.
 
 ---
 
 # 🐳 Running PostgreSQL with Docker
 
-`docker-compose.yml` spins up a PostgreSQL 16 container (`sa_banking_postgres`) and automatically applies `database/create_tables.sql` and `database/indexes.sql` on first start:
+A ready-to-use `docker-compose.yml` spins up PostgreSQL and creates the schema automatically on first boot:
 
 ```bash
 docker compose up -d
 ```
 
-Default connection settings (see `src/config.py`):
+This starts Postgres on `localhost:5432`, creates the `south_africa_bank` database, and runs `database/create_tables.sql` and `database/indexes.sql` on initialization.
 
-| Setting | Value |
-|---------|-------|
-| Host | localhost |
-| Port | 5432 |
-| Database | south_africa_bank |
-| User | postgres |
+> Update the `DB_USER`, `DB_PASSWORD`, `DB_NAME` and `DB_HOST` values in `src/config.py` to match the credentials in `docker-compose.yml` (or move them to environment variables) before running the ETL pipeline.
 
 ---
 
 # 📊 Analytics
 
-`sql/analytics/` holds the queries that will answer business questions such as:
+The project answers business questions such as (see `sql/analytics/`):
 
-- Customer segmentation by province
-- Monthly revenue
-- Fraud detection
-- Dormant accounts
-- Top spending customers
-- Provincial revenue analysis
-
-These files are scaffolded and are the next piece of work to be written (see **Current Progress** below).
+- Customer segmentation by province — `customer_segmentation.sql`
+- Monthly revenue trends — `monthly_revenue.sql`
+- Fraud detection — `fraud_detection.sql`
+- Dormant accounts — `dormant_accounts.sql`
+- Top spending customers — `top_spenders.sql`
+- Provincial revenue analysis — `province_revenue.sql`
 
 ---
 
-# ✅ Tests
+# ✅ Testing
 
-Unit tests live in `tests/` and cover the ETL layer:
-
-- `test_load_to_postgres.py` — connection setup, bulk insert calls, and load orchestration (using mocked `psycopg2`).
-- `test_validate_data.py` — each validation rule (duplicates, missing values, allowed types, transaction amounts/dates, foreign keys).
-
-Run the test suite with:
+Unit tests cover both the validation logic and the load logic (with the database mocked, so no live Postgres instance is required):
 
 ```bash
-uv run pytest
+uv run pytest tests/ -v
 ```
 
 ---
@@ -251,109 +226,4 @@ uv run pytest
 
 - File handling
 - Data structures
-- Functions
-- Error handling
-- Modular programming
-- Type hints
-
-## Pandas
-
-- Reading CSV files
-- Data transformation
-- Data validation
-- DataFrame manipulation
-
-## SQL
-
-- Database creation
-- Table creation
-- Primary Keys
-- Foreign Keys
-- NOT NULL constraints
-- Indexes
-- Joins
-- Aggregations
-- Window functions
-
-## PostgreSQL
-
-- Database design
-- Constraints
-- Indexing
-- Query optimization
-
-## Data Engineering
-
-- ETL pipelines
-- Data validation
-- Data modeling
-- Data loading
-- Workflow automation
-
-## DevOps
-
-- Docker
-- Git
-- GitHub
-- Apache Airflow
-- uv for dependency and environment management
-
----
-
-# 🎯 Learning Objectives
-
-This project demonstrates the skills expected from a Junior Data Engineer while building the foundation required for Machine Learning Engineering.
-
-Topics covered include:
-
-- Relational database design
-- ETL development
-- Data quality validation
-- Workflow orchestration
-- SQL analytics
-- Production project organization
-
----
-
-# 🚧 Current Progress
-
-## ✅ Completed
-
-- Customer, account and transaction data generators
-- PostgreSQL database creation, schema and indexes
-- Dockerized PostgreSQL setup
-- ETL data validation module
-- ETL load module (bulk insert into PostgreSQL)
-- Airflow DAG orchestrating validation and load
-- Automated tests for the ETL layer
-- Project migrated to `uv` for dependency management
-
-## 🚧 In Progress
-
-- SQL analytics queries (files scaffolded in `sql/analytics/`, not yet written)
-
-## ⏳ Planned
-
-- Documentation screenshots
-- Architecture diagram
-- Entity Relationship Diagram (ERD)
-
----
-
-# ▶️ Future Improvements
-
-- Incremental loading
-- Environment variables (.env) instead of hardcoded config values
-- Logging improvements and structured logs
-- Retry mechanisms
-- CI/CD pipeline
-- Data quality reporting
-- Cloud deployment (AWS/GCP/Azure)
-
----
-
-# 👨‍💻 Author
-
-**Benit Polvie Matumona**
-
-Aspiring Machine Learning Engineer building production-style Data Engineering projects as a foundation for advanced ML systems.
+-
