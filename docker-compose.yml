@@ -1,0 +1,23 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: sa_banking_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: south_africa_bank
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./database/create_tables.sql:/docker-entrypoint-initdb.d/1_create_tables.sql
+      - ./database/indexes.sql:/docker-entrypoint-initdb.d/2_indexes.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:
