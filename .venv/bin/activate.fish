@@ -79,7 +79,7 @@ end
 # Unset irrelevant variables.
 deactivate nondestructive
 
-set -gx VIRTUAL_ENV '/home/wtc/SA-Finance-Lakehouse/.venv'
+set -gx VIRTUAL_ENV '/home/benit-polvie/projects/SA-Banking-Transaction-ETL-Pipeline/.venv'
 if string match -qr 'CYGWIN|MSYS|MINGW' (uname); and command -s cygpath >/dev/null
     set -gx VIRTUAL_ENV (cygpath -u "$VIRTUAL_ENV")
 end
@@ -94,8 +94,8 @@ set -gx PATH "$VIRTUAL_ENV"'/bin' $PATH
 
 # Prompt override provided?
 # If not, just use the environment name.
-if test -n 'sa-finance-lakehouse'
-    set -gx VIRTUAL_ENV_PROMPT 'sa-finance-lakehouse'
+if test -n 'sa-banking-transaction-etl-fraud-detection-pipeline'
+    set -gx VIRTUAL_ENV_PROMPT 'sa-banking-transaction-etl-fraud-detection-pipeline'
 else
     set -gx VIRTUAL_ENV_PROMPT (basename "$VIRTUAL_ENV")
 end

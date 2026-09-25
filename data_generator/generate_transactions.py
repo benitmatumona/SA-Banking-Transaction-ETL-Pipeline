@@ -10,7 +10,7 @@ from src.config import TRANSACTION_CHANNELS, TRANSACTION_TYPES, MERCHANTS
 def generate_transactions(
     data: pd.DataFrame,
     fake: Faker,
-    transaction_id: int
+    transaction_id: itertools.count,
 ) -> pd.DataFrame:
     new_data: dict[str, list[Any]] = {
         "transaction_id": [],
@@ -24,83 +24,91 @@ def generate_transactions(
         "balance_after_transaction": [],
         "is_fraud": [],
     }
-    
+
     for row in data.itertuples():
         random_number_of_transactions = random.randint(3, 10)
         end_date = pd.Timestamp.today()
         balance = random_number_of_transactions * 5001
 
         for _ in range(random_number_of_transactions):
-            generate_transaction(
-                TRANSACTION_TYPES, 
-                TRANSACTION_CHANNELS, 
-                MERCHANTS
+            balance = generate_transaction(
+                new_data,
+                row,
+                fake,
+                transaction_id,
+                end_date,
+                balance,
+                TRANSACTION_TYPES,
+                TRANSACTION_CHANNELS,
+                MERCHANTS,
             )
-        #     amount = generate_amount()
-        #     transaction_type, transaction_channel = generate_transaction(
-        #         TRANSACTION_TYPES,
-        #         TRANSACTION_CHANNELS
-        #     ),
 
-        #     merchant_name = random.choice(MERCHANTS[transaction_type])
-
-        #     reference = generate_reference(
-        #         TRANSACTION_TYPES, 
-        #         transaction_type,
-        #         merchant_name
-        #     )
-
-        #     is_fraud = is_fraud(
-        #         amount,
-        #         transaction_channel,
-        #         transaction_type,
-        #         merchant_name,
-        #     )
-
-        #     write_row()
     return pd.DataFrame(new_data)
 
 
 def generate_transaction(
-        transaction_types,
-        transaction_channels,
-        merchants,
-    ) -> None:
-    
-    amount = generate_amount()
+    df: dict[str, list[Any]],
+    row: Any,
+    fake: Faker,
+    transaction_id: itertools.count,
+    end_date: pd.Timestamp,
+    balance: int,
+    transaction_types: dict[str, str],
+    transaction_channels: dict[str, list[str]],
+    merchants: dict[str, list[str]],
+) -> int:
     transaction_type, transaction_channel = generate_transaction_info(
         transaction_types,
-        transaction_channels
-    ),
+        transaction_channels,
+    )
+
+    amount = generate_amount()
 
     merchant_name = random.choice(merchants[transaction_type])
 
     reference = generate_reference(
-        transaction_types, 
+        transaction_types,
         transaction_type,
-        merchant_name
+        merchant_name,
     )
 
-    is_fraud = is_fraud(
+    fraud_flag = is_fraud(
         amount,
         transaction_channel,
         transaction_type,
         merchant_name,
     )
 
-    write_row()
+    updated_balance = update_balance(balance, amount, transaction_type)
+
+    write_row(
+        df,
+        row,
+        fake,
+        transaction_id,
+        transaction_type,
+        transaction_channel,
+        merchant_name,
+        reference,
+        amount,
+        end_date,
+        updated_balance,
+        fraud_flag,
+    )
+
+    return updated_balance
 
 
 def generate_transaction_info(
-    transaction_types,
-    transaction_channels,
-):
-    transaction_types = random.choice(tuple(transaction_types.keys()))
-    transaction_channels = random.choice(transaction_channels[transaction_types])
-    return transaction_types, transaction_channels
+    transaction_types: dict[str, str],
+    transaction_channels: dict[str, list[str]],
+) -> tuple[str, str]:
+    transaction_type = random.choice(tuple(transaction_types.keys()))
+    transaction_channel = random.choice(transaction_channels[transaction_type])
+    return transaction_type, transaction_channel
 
 
-def generate_amount():
+def generate_amount() -> int:
     return random.choices(
     population=[
         random.randint(20, 300),
@@ -109,7 +117,6 @@ def generate_amount():
     ],
     weights=[70, 25, 5],
     )[0]
-                
 
 
 def generate_reference(
@@ -135,16 +142,36 @@ def is_fraud(
     merchant_name: str,
 ) -> bool:
     if amount > 4500 and transaction_channel == "ATM":
-        is_fraud = random.random() <= 0.20
+        fraud_flag = random.random() <= 0.20
     elif (
         transaction_type == "Card Purchase"
         and merchant_name == "Uber"
         and amount > 3000
     ):
-        is_fraud = random.random() <= 0.12
+        fraud_flag = random.random() <= 0.12
     else:
-        is_fraud = random.random() <= 0.02
-    return is_fraud
+        fraud_flag = random.random() <= 0.02
+    return fraud_flag
+
+
+def update_balance(
+    balance: int,
+    amount: int,
+    transaction_type: str,
+) -> int:
+    is_incoming = random.random() >= 0.5
+
+    if transaction_type in ("Salary", "Deposit"):
+        balance += amount
+    elif transaction_type == "EFT":
+        if is_incoming:
+            balance += amount
+        else:
+            balance -= amount
+    else:
+        balance -= amount
+
+    return balance
 
 
 def write_row(
@@ -158,6 +185,8 @@ def write_row(
     reference,
     amount,
     end_date,
+    balance,
+    fraud_flag,
 ):
     df["transaction_id"].append(next(transaction_id))
     df["account_id"].append(row.account_id)
@@ -172,22 +201,9 @@ def write_row(
     )
 
     df["amount"].append(amount)
-
-    is_incoming = random.random() >= 0.5
-
-    if transaction_type in ("Salary", "Deposit"):
-        balance += amount
-    elif transaction_type == "EFT":
-        if is_incoming:
-            balance += amount
-        else:
-            balance -= amount
-    else:
-        balance -= amount
-
     df["reference"].append(reference)
     df["balance_after_transaction"].append(balance)
-    df["is_fraud"].append(is_fraud)
+    df["is_fraud"].append(fraud_flag)
 
 
 def generate_transactions_file():
@@ -208,7 +224,6 @@ def generate_transactions_file():
         "data/raw/transactions.csv", 
         index=False
     )
-    os.makedirs("data/raw", exist_ok=True)
 
 
 if __name__ == "__main__":

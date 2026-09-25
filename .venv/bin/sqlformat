@@ -1,4 +1,4 @@
-#!/home/wtc/SA-Finance-Lakehouse/.venv/bin/python3
+#!/home/benit-polvie/projects/SA-Banking-Transaction-ETL-Pipeline/.venv/bin/python
 # -*- coding: utf-8 -*-
 import sys
 from sqlparse.__main__ import main

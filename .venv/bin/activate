@@ -78,7 +78,7 @@ deactivate () {
 # unset irrelevant variables
 deactivate nondestructive
 
-VIRTUAL_ENV='/home/wtc/SA-Finance-Lakehouse/.venv'
+VIRTUAL_ENV='/home/benit-polvie/projects/SA-Banking-Transaction-ETL-Pipeline/.venv'
 if ([ "$OSTYPE" = "cygwin" ] || [ "$OSTYPE" = "msys" ]) && $(command -v cygpath &> /dev/null) ; then
     VIRTUAL_ENV=$(cygpath -u "$VIRTUAL_ENV")
 fi
@@ -98,8 +98,8 @@ _OLD_VIRTUAL_PATH="$PATH"
 PATH="$VIRTUAL_ENV/bin:$PATH"
 export PATH
 
-if [ "xsa-finance-lakehouse" != x ] ; then
-    VIRTUAL_ENV_PROMPT="sa-finance-lakehouse"
+if [ "xsa-banking-transaction-etl-fraud-detection-pipeline" != x ] ; then
+    VIRTUAL_ENV_PROMPT="sa-banking-transaction-etl-fraud-detection-pipeline"
 else
     VIRTUAL_ENV_PROMPT=$(basename "$VIRTUAL_ENV")
 fi

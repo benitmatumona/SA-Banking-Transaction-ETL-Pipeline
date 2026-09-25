@@ -26,9 +26,9 @@
     "%SystemRoot%\System32\chcp.com" 65001 > nul
 )
 
-@for %%i in ("/home/wtc/SA-Finance-Lakehouse/.venv") do @set "VIRTUAL_ENV=%%~fi"
+@for %%i in ("/home/benit-polvie/projects/SA-Banking-Transaction-ETL-Pipeline/.venv") do @set "VIRTUAL_ENV=%%~fi"
 
-@set "VIRTUAL_ENV_PROMPT=sa-finance-lakehouse"
+@set "VIRTUAL_ENV_PROMPT=sa-banking-transaction-etl-fraud-detection-pipeline"
 @if NOT DEFINED VIRTUAL_ENV_PROMPT (
     @for %%d in ("%VIRTUAL_ENV%") do @set "VIRTUAL_ENV_PROMPT=%%~nxd"
 )

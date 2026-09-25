@@ -21,7 +21,7 @@ def test_bulk_insert_calls_execute_values_with_expected_arguments() -> None:
     with patch("src.etl.load.execute_values") as mock_execute_values:
         bulk_insert(cur=cur, sql=sql, rows=rows)
         mock_execute_values.assert_called_once_with(
-            cur=cur, sql=sql, rows=rows, page_size=1000
+            cur=cur, sql=sql, argslist=rows, page_size=1000
         )
 
 

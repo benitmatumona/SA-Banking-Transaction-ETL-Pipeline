@@ -2,7 +2,6 @@ import random
 import os
 import itertools
 import pandas as pd
-from datetime import datetime
 from typing import Any
 from faker import Faker
 from src.config import ACCOUNT_TYPES
@@ -10,8 +9,8 @@ from src.config import ACCOUNT_TYPES
 
 os.makedirs("data/raw", exist_ok=True)
 data = pd.read_csv(
-    "data/raw/accounts.csv",
-    parse_dates=["open_date"]
+    "data/raw/customers.csv",
+    parse_dates=["join_date"]
     )
 fake = Faker()
 account_id = itertools.count(start=200001)
@@ -24,7 +23,7 @@ for row in data.itertuples():
     random_accounts = random.sample(ACCOUNT_TYPES, random_number_of_accounts)
 
     for account_type in random_accounts:
-        start_date = row.open_date
+        start_date = row.join_date
         end_date = pd.Timestamp.today()
         open_date = fake.date_between(start_date, end_date)
         new_data["account_id"].append(next(account_id))

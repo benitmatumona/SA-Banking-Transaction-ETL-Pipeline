@@ -43,7 +43,7 @@ def check_allowed_types(
 
 def check_transaction_amounts(df: pd.DataFrame) -> bool:
     if (df["amount"].isna()).any():
-        raise ValueError(f"Missing values found in the column 'amount'.")
+        raise ValueError("Missing values found in the column 'amount'.")
     if (df["amount"] <= 0).any():
         raise ValueError("Transaction amounts must be greater than 0.")
     if (df["amount"] > MAX_TRANSACTION_AMOUNT).any():

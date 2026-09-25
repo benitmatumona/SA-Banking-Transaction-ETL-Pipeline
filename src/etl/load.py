@@ -101,7 +101,7 @@ def bulk_insert(
     execute_values(
         cur=cur,
         sql=sql,
-        rows=rows,
+        argslist=rows,
         page_size=BULK_INSERT_PAGE_SIZE
     )
 

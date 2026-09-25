@@ -19,3 +19,6 @@ dev = [
     "ruff>=0.15.21",
     "types-psycopg2>=2.9.21.20260712",
 ]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]

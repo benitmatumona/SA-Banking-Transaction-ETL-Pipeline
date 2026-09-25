@@ -20,7 +20,7 @@
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 $script:THIS_PATH = $myinvocation.mycommand.path
-$script:BASE_DIR = Split-Path (Resolve-Path "$THIS_PATH/..") -Parent
+$script:BASE_DIR = Split-Path -Parent (Split-Path -Parent $THIS_PATH)
 
 function global:deactivate([switch] $NonDestructive) {
     if (Test-Path variable:_OLD_VIRTUAL_PATH) {
@@ -58,8 +58,8 @@ deactivate -nondestructive
 $VIRTUAL_ENV = $BASE_DIR
 $env:VIRTUAL_ENV = $VIRTUAL_ENV
 
-if ("sa-finance-lakehouse" -ne "") {
-    $env:VIRTUAL_ENV_PROMPT = "sa-finance-lakehouse"
+if ("sa-banking-transaction-etl-fraud-detection-pipeline" -ne "") {
+    $env:VIRTUAL_ENV_PROMPT = "sa-banking-transaction-etl-fraud-detection-pipeline"
 }
 else {
     $env:VIRTUAL_ENV_PROMPT = $( Split-Path $env:VIRTUAL_ENV -Leaf )

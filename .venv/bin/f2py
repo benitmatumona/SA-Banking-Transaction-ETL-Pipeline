@@ -1,4 +1,4 @@
-#!/home/wtc/SA-Finance-Lakehouse/.venv/bin/python
+#!/home/benit-polvie/projects/SA-Banking-Transaction-ETL-Pipeline/.venv/bin/python
 # -*- coding: utf-8 -*-
 import sys
 from numpy.f2py.f2py2e import main
