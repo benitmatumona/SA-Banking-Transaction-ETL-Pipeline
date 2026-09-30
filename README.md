@@ -1,6 +1,14 @@
-cat > README.md << 'README_EOF'
 # 🇿🇦 SA Banking Transaction ETL Pipeline
 # WTC-DY8ASR4X
+
+## 🎥 Project Demo
+
+**▶️ [WATCH THE SA BANKING ETL PIPELINE DEMO](https://drive.google.com/drive/folders/13FtTnPzJyQJMiF52ElStWq_tPrViA2gw?usp=drive_link)**
+
+> **Demo:** A walkthrough of the ETL pipeline, data generation, validation, PostgreSQL loading, orchestration, and project structure.
+
+---
+
 A production-style Data Engineering project that simulates a South African banking system. The project generates realistic banking data, validates it, loads it into PostgreSQL through an ETL pipeline, orchestrates workflows with Apache Airflow, and performs analytical SQL queries. It is designed to demonstrate the complete data engineering lifecycle while serving as a stepping stone toward Machine Learning Engineering.
 
 ---
@@ -172,14 +180,14 @@ The ETL pipeline performs the following steps:
 8. Handle errors.
 9. Close the database connection.
 
+Airflow can orchestrate the validation and loading workflow through `airflow/bank_etl_dag.py`, ensuring that data is validated before being loaded into PostgreSQL.
+
 Run validation and loading directly:
 
 ```bash
 python -m src.etl.validate
 python -m src.etl.load
 ```
-
-Or let Airflow orchestrate both steps via `airflow/bank_etl_dag.py`, which validates the data before loading it into PostgreSQL.
 
 ---
 
@@ -191,7 +199,7 @@ A ready-to-use `docker-compose.yml` spins up PostgreSQL and creates the schema a
 docker compose up -d
 ```
 
-This starts Postgres on `localhost:5432`, creates the `south_africa_bank` database, and runs `database/create_tables.sql` and `database/indexes.sql` on initialization.
+This starts PostgreSQL on `localhost:5432`, creates the `south_africa_bank` database, and runs `database/create_tables.sql` and `database/indexes.sql` on initialization.
 
 > Update the `DB_USER`, `DB_PASSWORD`, `DB_NAME` and `DB_HOST` values in `src/config.py` to match the credentials in `docker-compose.yml` (or move them to environment variables) before running the ETL pipeline.
 
@@ -212,10 +220,17 @@ The project answers business questions such as (see `sql/analytics/`):
 
 # ✅ Testing
 
-Unit tests cover both the validation logic and the load logic (with the database mocked, so no live Postgres instance is required):
+Unit tests cover both the validation logic and the load logic, with the database mocked so no live PostgreSQL instance is required:
 
 ```bash
 uv run pytest tests/ -v
+```
+
+Static analysis and code quality checks:
+
+```bash
+uv run ruff check .
+uv run mypy src
 ```
 
 ---
@@ -270,7 +285,8 @@ uv run pytest tests/ -v
 - Git
 - GitHub
 - Apache Airflow
-- Automated testing (pytest)
+- Automated testing with pytest
+- Static analysis with Ruff and mypy
 
 ---
 
@@ -286,6 +302,8 @@ Topics covered include:
 - Workflow orchestration
 - SQL analytics
 - Production project organization
+- Testing and code quality
+- Containerization
 
 ---
 
@@ -305,6 +323,10 @@ Topics covered include:
 - SQL analytics queries
 - Automated tests
 - Dockerized PostgreSQL
+- Ruff code-quality checks
+- mypy static type checking
+- Git/GitHub version control
+- Project demonstration video
 
 ## ⏳ Planned
 
@@ -336,4 +358,3 @@ Topics covered include:
 **Benit Polvie Matumona**
 
 Aspiring Machine Learning Engineer building production-style Data Engineering projects as a foundation for advanced ML systems.
-README_EOF
